@@ -1,0 +1,28 @@
+[project]
+name = "pdf-reader"
+version = "0.1.0"
+description = "PDF reader with a guided marker and focus mode"
+license = {text = "GPL-3.0-or-later"}
+classifiers = ["License :: OSI Approved :: GNU General Public License v3 or later (GPLv3+)"]
+requires-python = ">=3.10"
+dependencies = ["PySide6>=6.6", "PyMuPDF>=1.24", "piper-tts>=1.5", "kokoro-onnx>=0.4"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8"]
+
+[project.gui-scripts]
+pdf-reader = "pdf_reader.__main__:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+include = ["pdf_reader*"]
+
+[tool.setuptools.package-data]
+pdf_reader = ["assets/*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+pythonpath = ["."]
