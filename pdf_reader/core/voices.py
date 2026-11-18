@@ -28,6 +28,11 @@ _KOKORO = "https://github.com/thewh1teagle/kokoro-onnx/releases/download/model-f
 _KOKORO_FILES = ("kokoro-v1.0.int8.onnx", "voices-v1.0.bin")
 
 
+PT_BR, EN_US, EN_GB = "pt-BR", "en-US", "en-GB"
+# Voice categories, in the order they are shown.
+LANGUAGES = {PT_BR: "Português (Brasil)", EN_US: "English (US)", EN_GB: "English (UK)"}
+
+
 @dataclass(frozen=True)
 class Voice:
     id: str
@@ -38,6 +43,7 @@ class Voice:
     engine: str = PIPER
     repository: str = ""  # Piper: repository on Hugging Face
     path: str = ""  # Piper: file in the repository, without the extension
+    language: str = PT_BR  # the language of the text the voice reads well
 
     @property
     def label(self) -> str:
@@ -57,10 +63,15 @@ class Voice:
         return all((Path(folder) / name).exists() for _, name in self.files())
 
 
-def _official(name: str, quality: str, gender: str, license: str, extra: str = "") -> Voice:
-    voice_id = f"pt_BR-{name.lower()}-{quality}"
+def _official(name: str, quality: str, gender: str, license: str, extra: str = "",
+              language: str = PT_BR, file: str = "") -> Voice:
+    """A voice from the official Piper catalog (``file`` when it isn't just the name)."""
+    code = language.replace("-", "_")
+    file = file or name.lower()
+    voice_id = f"{code}-{file}-{quality}"
     return Voice(voice_id, name, gender, f"Piper, official catalog. License {license}.{extra}", 63,
-                 PIPER, "rhasspy/piper-voices", f"pt/pt_BR/{name.lower()}/{quality}/{voice_id}")
+                 PIPER, "rhasspy/piper-voices",
+                 f"{code[:2]}/{code}/{file}/{quality}/{voice_id}", language)
 
 
 def _openvoiceos(name: str, gender: str) -> Voice:
@@ -71,14 +82,21 @@ def _openvoiceos(name: str, gender: str) -> Voice:
                  file)
 
 
-def _kokoro(name: str, gender: str) -> Voice:
-    prefix = "pf" if gender == FEMALE else "pm"
+# Kokoro names its voices by language and gender: "pf_dora" = Portuguese, female.
+_KOKORO_PREFIX = {PT_BR: "p", EN_US: "a", EN_GB: "b"}
+_KOKORO_LANG = {PT_BR: "pt-br", EN_US: "en-us", EN_GB: "en-gb"}
+
+
+def _kokoro(name: str, gender: str, language: str = PT_BR) -> Voice:
+    prefix = _KOKORO_PREFIX[language] + ("f" if gender == FEMALE else "m")
     return Voice(f"kokoro-{prefix}_{name.lower()}", name, gender,
                  "Kokoro. License Apache 2.0. Takes a little longer to start speaking. "
-                 "The same download serves all Kokoro voices.", 116, KOKORO)
+                 "The same download serves all Kokoro voices.", 116, KOKORO,
+                 language=language)
 
 
 VOICES = [
+    # Português (Brasil)
     _openvoiceos("Dii", FEMALE),
     _kokoro("Dora", FEMALE),
     _official("Faber", "medium", MALE, "CC0"),
@@ -88,6 +106,24 @@ VOICES = [
     _kokoro("Alex", MALE),
     _kokoro("Santa", MALE),
     _official("Edresson", "low", MALE, "CC BY 4.0", " Lower quality."),
+    # English (US)
+    _kokoro("Heart", FEMALE, EN_US),
+    _kokoro("Bella", FEMALE, EN_US),
+    _official("Kristin", "medium", FEMALE, "public domain", language=EN_US),
+    _official("Linda", "medium", FEMALE, "public domain (LJ Speech)", language=EN_US,
+              file="ljspeech"),
+    _kokoro("Michael", MALE, EN_US),
+    _kokoro("Fenrir", MALE, EN_US),
+    _official("Joe", "medium", MALE, "CC0", language=EN_US),
+    _official("John", "medium", MALE, "public domain", language=EN_US),
+    _official("Norman", "medium", MALE, "public domain", language=EN_US),
+    # English (UK)
+    _kokoro("Emma", FEMALE, EN_GB),
+    _official("Cori", "medium", FEMALE, "CC BY 4.0", language=EN_GB),
+    _official("Alba", "medium", FEMALE, "CC BY 4.0", " Scottish accent.", language=EN_GB),
+    _kokoro("George", MALE, EN_GB),
+    _official("Northern", "medium", MALE, "CC BY-SA 4.0", " Northern English accent.",
+              language=EN_GB, file="northern_english_male"),
 ]
 DEFAULT_VOICE = "pt_BR-faber-medium"
 _BY_ID = {v.id: v for v in VOICES}
@@ -159,7 +195,7 @@ _KOKORO_MODELS: dict[Path, object] = {}  # one model shared by all voices
 
 
 class _KokoroSynthesizer(Synthesizer):
-    def __init__(self, folder: Path, voice_name: str) -> None:
+    def __init__(self, folder: Path, voice_name: str, lang: str) -> None:
         from kokoro_onnx import Kokoro  # heavy import: only when it's time to speak
 
         folder = Path(folder)
@@ -168,17 +204,18 @@ class _KokoroSynthesizer(Synthesizer):
                                             str(folder / _KOKORO_FILES[1]))
         self._kokoro = _KOKORO_MODELS[folder]
         self._voice_name = voice_name
+        self._lang = lang
         self.rate = 24_000
 
     def synthesize(self, text: str, speed: float = 1.0) -> bytes:
         import numpy as np
 
         audio, self.rate = self._kokoro.create(
-            text, voice=self._voice_name, speed=min(max(speed, 0.5), 2.0), lang="pt-br")
+            text, voice=self._voice_name, speed=min(max(speed, 0.5), 2.0), lang=self._lang)
         return (np.clip(audio, -1, 1) * 32_767).astype(np.int16).tobytes()
 
 
 def create_synthesizer(v: Voice, folder: Path) -> Synthesizer:
     if v.engine == KOKORO:
-        return _KokoroSynthesizer(folder, v.id.removeprefix("kokoro-"))
+        return _KokoroSynthesizer(folder, v.id.removeprefix("kokoro-"), _KOKORO_LANG[v.language])
     return _PiperSynthesizer(Path(folder) / f"{v.id}.onnx")

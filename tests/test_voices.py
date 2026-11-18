@@ -1,4 +1,4 @@
-from pdf_reader.core.voices import DEFAULT_VOICE, VOICES, voice
+from pdf_reader.core.voices import DEFAULT_VOICE, EN_GB, EN_US, LANGUAGES, PT_BR, VOICES, voice
 
 
 def test_urls_follow_the_piper_repository():
@@ -41,3 +41,23 @@ def test_kokoro_voices_share_the_download(tmp_path):
     for _, name in dora.files():
         (tmp_path / name).write_bytes(b"x")
     assert alex.is_downloaded(tmp_path)
+
+
+def test_english_piper_urls():
+    urls = voice("en_GB-northern_english_male-medium").files()
+    assert urls[1] == (
+        "https://huggingface.co/rhasspy/piper-voices/resolve/main/en/en_GB/"
+        "northern_english_male/medium/en_GB-northern_english_male-medium.onnx?download=true",
+        "en_GB-northern_english_male-medium.onnx",
+    )
+
+
+def test_kokoro_ids_follow_language_and_gender():
+    assert voice("kokoro-af_heart").language == EN_US
+    assert voice("kokoro-bm_george").language == EN_GB
+    assert voice("kokoro-pf_dora").language == PT_BR
+    assert voice("kokoro-af_heart").files() == voice("kokoro-pf_dora").files()
+
+
+def test_every_voice_has_a_known_language():
+    assert {v.language for v in VOICES} == set(LANGUAGES)

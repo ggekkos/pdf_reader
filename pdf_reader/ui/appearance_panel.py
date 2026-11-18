@@ -20,7 +20,7 @@ from PySide6.QtWidgets import (
     QWidget,
 )
 
-from pdf_reader.core.voices import VOICES
+from pdf_reader.core.voices import DEFAULT_VOICE, LANGUAGES, VOICES, voice
 from pdf_reader.storage import Settings
 from pdf_reader.ui.theme import READING_FONTS, THEMES, WIDTHS
 from pdf_reader.ui.widgets import label, no_focus
@@ -156,24 +156,42 @@ class AppearancePanel(QFrame):
         return combo
 
     def _voice_picker(self) -> QComboBox:
+        """Voices grouped by language, each group under a header that can't be picked."""
         combo = no_focus(QComboBox())
-        combo.setToolTip("Voice for reading aloud (V key)")
-        for voice in VOICES:
-            combo.addItem("", voice.id)
+        combo.setToolTip("Voice for reading aloud (V key). "
+                         "Pick one in the same language as the PDF.")
+        model = combo.model()
+        header_font = QFont()
+        header_font.setBold(True)
+        for language, title in LANGUAGES.items():
+            voices = [v for v in VOICES if v.language == language]
+            if not voices:
+                continue
+            combo.addItem(title)
+            header = model.item(combo.count() - 1)
+            header.setFlags(header.flags() & ~(Qt.ItemFlag.ItemIsSelectable
+                                               | Qt.ItemFlag.ItemIsEnabled))
+            header.setFont(header_font)
+            for voice in voices:
+                combo.addItem("", voice.id)
         self.refresh_voices(combo)
         index = combo.findData(self._settings.voice)
-        combo.setCurrentIndex(max(index, 0))
+        combo.setCurrentIndex(index if index >= 0 else combo.findData(DEFAULT_VOICE))
         combo.currentIndexChanged.connect(lambda i: self._set("voice", combo.itemData(i)))
         return combo
 
     def refresh_voices(self, combo: QComboBox | None = None) -> None:
         """Show which voices still need to be downloaded."""
         combo = combo or self._voice_combo
-        for i, voice in enumerate(VOICES):
-            downloaded = self._voices_folder is None or voice.is_downloaded(self._voices_folder)
-            suffix = "" if downloaded else f"  (download {voice.size_mb} MB)"
-            combo.setItemText(i, f"Voice: {voice.label}{suffix}")
-            combo.setItemData(i, voice.description, Qt.ItemDataRole.ToolTipRole)
+        for i in range(combo.count()):
+            voice_id = combo.itemData(i)
+            if voice_id is None:  # a language header
+                continue
+            v = voice(voice_id)
+            downloaded = self._voices_folder is None or v.is_downloaded(self._voices_folder)
+            suffix = "" if downloaded else f"  (download {v.size_mb} MB)"
+            combo.setItemText(i, f"{v.label}{suffix}")
+            combo.setItemData(i, v.description, Qt.ItemDataRole.ToolTipRole)
 
     def _checkbox(self, text: str, field: str) -> QCheckBox:
         box = no_focus(QCheckBox(text))

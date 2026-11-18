@@ -22,20 +22,46 @@ dims the surrounding text, leaving only the current line lit.
 
 ## Voices
 
-The voices are Brazilian Portuguese and don't ship with the app. The first time you use one,
-the app asks and downloads it to `%APPDATA%\PDFReader\voices`. After that, it works offline.
+There are voices in Brazilian Portuguese, American English and British English, grouped by
+language in the **Aa** panel. Pick one in the same language as the PDF. The voices don't ship
+with the app: the first time you use one, the app asks and downloads it to
+`%APPDATA%\PDFReader\voices`. After that, it works offline.
+
+### Português (Brasil)
 
 | Voice | Gender | Engine | Download | License |
 |---|---|---|---|---|
-| **Dii** | **female** | Piper (OpenVoiceOS) | 64 MB | CC BY-NC-ND 4.0 (personal, non-commercial use) |
-| **Dora** | **female** | Kokoro | 116 MB* | Apache 2.0 |
-| Faber, Cadu, Jeff | male | Piper (official catalog) | 63 MB each | CC0 |
+| Dii | female | Piper (OpenVoiceOS) | 64 MB | CC BY-NC-ND 4.0 (personal, non-commercial use) |
+| Dora | female | Kokoro | 116 MB* | Apache 2.0 |
+| Faber, Cadu, Jeff | male | Piper | 63 MB each | CC0 |
 | Miro | male | Piper (OpenVoiceOS) | 64 MB | CC BY-NC-ND 4.0 (personal, non-commercial use) |
 | Alex, Santa | male | Kokoro | 116 MB* | Apache 2.0 |
-| Edresson | male (lower quality) | Piper (official catalog) | 63 MB | CC BY 4.0 |
+| Edresson | male (lower quality) | Piper | 63 MB | CC BY 4.0 |
 
-\* The Kokoro voices share a single download: getting one unlocks all three.
-Kokoro takes a few more seconds to start speaking.
+### English (US)
+
+| Voice | Gender | Engine | Download | License |
+|---|---|---|---|---|
+| Heart, Bella | female | Kokoro | 116 MB* | Apache 2.0 |
+| Kristin | female | Piper | 63 MB | public domain |
+| Linda | female | Piper (LJ Speech) | 63 MB | public domain |
+| Michael, Fenrir | male | Kokoro | 116 MB* | Apache 2.0 |
+| Joe | male | Piper | 63 MB | CC0 |
+| John, Norman | male | Piper | 63 MB each | public domain |
+
+### English (UK)
+
+| Voice | Gender | Engine | Download | License |
+|---|---|---|---|---|
+| Emma | female | Kokoro | 116 MB* | Apache 2.0 |
+| Cori | female | Piper | 63 MB | CC BY 4.0 |
+| Alba | female (Scottish accent) | Piper | 63 MB | CC BY 4.0 |
+| George | male | Kokoro | 116 MB* | Apache 2.0 |
+| Northern | male (Northern English accent) | Piper | 63 MB | CC BY-SA 4.0 |
+
+\* All Kokoro voices, in every language, share a single download: getting one unlocks all of them.
+Kokoro takes a few more seconds to start speaking. Piper voices without a note come from the
+[official Piper catalog](https://huggingface.co/rhasspy/piper-voices).
 
 ## Install and run
 
